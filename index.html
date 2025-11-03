@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prompt Generator By SKBKTeam</title>
+    <title>Prompt Generator By RZ Digital ID</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -73,7 +73,7 @@
         <!-- Header -->
         <div class="text-center">
             <h1 class="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-500">
-                Prompt Generator By SKBKTeam
+                Prompt Generator By RZ Digital ID
             </h1>
             <p class="text-gray-400 mt-2">Ubah ide sederhana menjadi prompt gambar & video yang luar biasa.</p>
         </div>
@@ -360,7 +360,6 @@
                     ]
                 }],
             };
-            // Menggunakan model yang sama untuk konsistensi, karena gemini-2.5-flash-preview-09-2025 dapat menangani gambar
             const result = await fetchFromApi(payload);
             return [result.candidates[0].content.parts[0].text]; 
         }
@@ -393,26 +392,16 @@
             const result = await fetchFromApi(payload);
             const jsonText = result.candidates[0].content.parts[0].text;
             let cleanedJsonText = jsonText.trim();
-            // Membersihkan wrapper markdown/json jika ada
             if (cleanedJsonText.startsWith("```json")) {
                 cleanedJsonText = cleanedJsonText.substring(7, cleanedJsonText.length - 3).trim();
-            } else if (cleanedJsonText.startsWith("json")) {
-                 cleanedJsonText = cleanedJsonText.substring(4).trim();
             }
             const parsedJson = JSON.parse(cleanedJsonText);
             return parsedJson.prompts || [];
         }
 
         async function fetchFromApi(payload) {
-            // --- PENTING! ---
-            // Ganti "" dengan API Key Anda yang valid.
-            // Dapatkan Key Anda dari Google AI Studio ([https://aistudio.google.com/](https://aistudio.google.com/))
-            const apiKey = "AIzaSyDO8OVdJX90259SGmt3Db6dyW15zNBIs9M"; // <-- GANTI DENGAN API KEY ANDA
-            
-            // Menggunakan model yang lebih baru dan direkomendasikan
-            const model = "gemini-2.5-flash-preview-09-2025"; 
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-            
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
             let attempts = 0;
             const maxAttempts = 5;
             let delay = 1000;
@@ -430,9 +419,6 @@
                     if (response.status === 429 || response.status >= 500) {
                         console.warn(`Request failed with status ${response.status}. Retrying in ${delay}ms...`);
                     } else {
-                        // Jika API key salah, error akan muncul di sini (status 400)
-                        const errorBody = await response.text();
-                        console.error(`API request failed with status ${response.status}: ${errorBody}`);
                         throw new Error(`API request failed with status ${response.status}: ${response.statusText}`);
                     }
                 } catch (error) {
@@ -447,3 +433,4 @@
     </script>
 </body>
 </html>
+
