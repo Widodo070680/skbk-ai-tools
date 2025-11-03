@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Prompt Generator SKBK</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #0b1020; color: #e6eef8; }
+    #output-prompt { font-family: 'Fira Code', monospace; white-space: pre-wrap; }
+    .tab-active { background-color: #4f46e5; color: white }
+    .tab-inactive { background-color: #1f2937; color: #cbd5e1 }
+    .tab-inactive:hover { background-color: #374151 }
+    .loader { width: 18px; height: 18px; border: 2px solid #FFF; border-bottom-color: transparent; border-radius: 50%; display: inline-block; box-sizing: border-box; animation: rotation 1s linear infinite }
+    @keyframes rotation { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+    .custom-file-upload { border: 2px dashed #2f3848; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; background-color: #0f1724; transition: background-color 0.2s; border-radius: 12px; padding: 1rem; }
+    .custom-file-upload:hover { background-color: #111827; border-color: #374151 }
+    .card { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.04); border-radius: 12px; box-shadow: 0 6px 18px rgba(2,6,23,0.6); padding: 16px; }
+    .card-title { font-weight: 600; color: #e6eef8; }
+    .chip { background: rgba(255,255,255,0.03); padding: .25rem .5rem; border-radius: .375rem; font-size:.75rem; color:#c9d6ea; }
+    .soft-muted { color: #9aa7bf; }
+    .brand { font-weight:700; color: #c7d2fe; letter-spacing: 0.6px; }
+    footer { color: #94a3b8; font-size: 13px; }
+    .splash { position: fixed; inset:0; display:flex; align-items:center; justify-content:center; background: linear-gradient(180deg,#05060a 0%, rgba(2,6,23,0.6) 100%); z-index:50; }
+    .splash .logo { font-weight:800; font-size:28px; color:#eef2ff; letter-spacing:1px; }
+    .fade-out { animation: fadeOut 0.6s ease forwards; animation-delay: 1.6s; }
+    @keyframes fadeOut { to { opacity:0; visibility:hidden } }
+  </style>
+</head>
+<body>
+
+<div id="splash" class="splash">
+  <div class="text-center">
+    <div class="logo">SKBK</div>
+    <div class="soft-muted mt-2">Prompt Generator SKBK</div>
+  </div>
+</div>
+
+<div class="min-h-screen flex items-center justify-center p-6">
+  <div class="w-full max-w-3xl space-y-6">
+    <header class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="brand px-3 py-2 card">SKBK</div>
+        <div>
+          <h1 class="text-2xl font-bold">Prompt Generator SKBK</h1>
+          <div class="soft-muted">Alat pembuat prompt berbasis AI yang sederhana dan intuitif.</div>
+        </div>
+      </div>
+      <div class="soft-muted">© 2025 SKBK Creative Labs — Dibuat dengan ❤️ oleh Widodo</div>
+    </header>
+
+    <main class="card">
+      <label class="block soft-muted mb-2">1. Masukkan ide utama</label>
+      <textarea id="main-topic" rows="3" class="w-full bg-transparent border border-white/5 rounded-lg p-3 focus:outline-none" placeholder="Contoh: Elang terbang di atas pegunungan"></textarea>
+
+      <div class="mt-4 grid grid-cols-2 gap-4">
+        <div>
+          <label class="soft-muted text-sm">Jumlah Prompt</label>
+          <input id="prompt-count" type="number" value="1" min="1" class="w-full bg-transparent border border-white/5 rounded-lg p-2 text-center" />
+        </div>
+        <div>
+          <label class="soft-muted text-sm">Gaya</label>
+          <select id="style-select" class="w-full bg-transparent border border-white/5 rounded-lg p-2">
+            <option value="general">Gambar</option>
+            <option value="vector">Vektor</option>
+            <option value="video">Video</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="mt-4 flex gap-3">
+        <button id="generate-btn" class="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-lg">Buat Prompt</button>
+        <button id="clear-btn" class="bg-red-600 px-4 py-2 rounded-lg">Hapus</button>
+      </div>
+
+      <div id="results" class="mt-6 space-y-3"></div>
+      <div class="mt-4 soft-muted text-xs">Mode API: jika ingin mengaktifkan AI asli, deploy versi <code>/online</code> ke server dan set environment variable <code>API_PROVIDER</code> dan <code>API_KEY</code>.</div>
+    </main>
+
+    <footer class="text-center soft-muted">Prompt Generator SKBK — Alat pembuat prompt berbasis AI.</footer>
+  </div>
+</div>
+
+<script>
+  // splash fade
+  setTimeout(() => {
+    const s = document.getElementById('splash');
+    if (s) s.classList.add('fade-out');
+  }, 1400);
+
+  function createCard(content, idx) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'card';
+    const title = document.createElement('div');
+    title.className = 'card-title';
+    title.textContent = 'Hasil Prompt #' + (idx+1);
+    const body = document.createElement('pre');
+    body.id = 'output-prompt';
+    body.style.marginTop = '8px';
+    body.textContent = content;
+    wrapper.appendChild(title);
+    wrapper.appendChild(body);
+    return wrapper;
+  }
+
+  // Offline mock (fallback)
+  function mockGenerate(topic, style, count) {
+    const templates = [
+      'Fotorealistik pemandangan ${topic}, pencahayaan sinematik, detail ultra, ruang teks di kanan.',
+      'Ilustrasi vektor flat ${topic}, garis bersih, warna cerah, komposisi minimal untuk desain.',
+      'Cuplikan video 4K ${topic}, gerakan kamera halus, fokus tajam, tone film.'
+    ];
+    const results = [];
+    for (let i=0;i<count;i++) {
+      const t = templates[i % templates.length].replace('${topic}', topic || 'subjek tak dikenal');
+      results.push((i+1)+'. '+t);
+    }
+    return results;
+  }
+
+  async function callServerAPI(promptPayload) {
+    // NOTE:
+    // This function expects your deployment to expose an endpoint /api/generate
+    // which accepts POST { prompt } and returns JSON { result: "..." }
+    // For security, store API keys on the server (Vercel environment variables) — do NOT embed API keys in this client.
+    try {
+      const r = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: promptPayload })
+      });
+      if (!r.ok) throw new Error('Server response '+r.status);
+      const j = await r.json();
+      return j.result || null;
+    } catch (err) {
+      console.warn('API call failed, using mock', err);
+      return null;
+    }
+  }
+
+  document.getElementById('generate-btn').addEventListener('click', async () => {
+    const topic = document.getElementById('main-topic').value.trim();
+    const style = document.getElementById('style-select').value;
+    const count = parseInt(document.getElementById('prompt-count').value, 10) || 1;
+    const resArea = document.getElementById('results');
+    resArea.innerHTML = '';
+    if (!topic) {
+      resArea.appendChild(createCard('Silakan masukkan ide terlebih dahulu.', 0));
+      return;
+    }
+
+    // Build a master prompt for the server (if available)
+    const master = `Buat ${count} prompt profesional berbahasa Inggris untuk topik: "${topic}". Gaya: ${style}. Sertakan detail komposisi, pencahayaan, dan ruang teks. Kembalikan sebagai array of strings.`;
+
+    // Try server API first
+    const apiResp = await callServerAPI(master);
+    if (apiResp) {
+      // expect apiResp to be JSON array or newline-separated; try parse
+      let items = [];
+      try {
+        items = JSON.parse(apiResp);
+        if (!Array.isArray(items)) items = [String(apiResp)];
+      } catch {
+        items = String(apiResp).split('\n').filter(Boolean);
+      }
+      items.forEach((it, idx) => resArea.appendChild(createCard(it, idx)));
+      return;
+    }
+
+    // fallback to mock
+    const prompts = mockGenerate(topic, style, count);
+    prompts.forEach((p, idx) => resArea.appendChild(createCard(p, idx)));
+  });
+
+  document.getElementById('clear-btn').addEventListener('click', () => {
+    document.getElementById('main-topic').value = '';
+    document.getElementById('results').innerHTML = '';
+  });
+</script>
+</body>
+</html>
