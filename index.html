@@ -1,334 +1,449 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Prompt Generator — SKBKTeam (Enhanced)</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
-  <style>
-    body { font-family: 'Inter', sans-serif }
-    #output-prompt { font-family: 'Fira Code', monospace }
-    .tab-active { background-color: #4f46e5; color: white }
-    .tab-inactive { background-color: #374151; color: #d1d5db }
-    .tab-inactive:hover { background-color: #4b5563 }
-    #generate-btn:disabled { cursor: not-allowed; background-color: #4338ca }
-    .loader { width: 18px; height: 18px; border: 2px solid #FFF; border-bottom-color: transparent; border-radius: 50%; display: inline-block; box-sizing: border-box; animation: rotation 1s linear infinite }
-    @keyframes rotation { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
-    .custom-file-upload { border: 2px dashed #4b5563; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; background-color: #374151; transition: background-color 0.2s }
-    .custom-file-upload:hover { background-color: #4b5563; border-color: #6b7280 }
-    #image-previews-container img { max-height: 100px; object-fit: cover }
-    .chip { background: #111827; padding: .25rem .5rem; border-radius: .375rem; font-size:.75rem }
-  </style>
-</head>
-<body class="bg-gray-900 text-white min-h-screen p-6 flex items-center justify-center">
-  <div class="w-full max-w-3xl bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8 space-y-6">
-    <header class="text-center">
-      <h1 class="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-500">Prompt Generator — SKBK Team (Enhanced)</h1>
-      <p class="text-gray-400 mt-2">Ubah ide menjadi prompt gambar / vektor / video — fitur tambahan: drag & drop, download, preset, dan mode serverless.</p>
-    </header>
-
-    <!-- Mode -->
-    <section>
-      <label class="block text-sm font-medium text-gray-300 mb-2">1. Pilih Mode Input</label>
-      <div class="grid grid-cols-2 gap-4">
-        <button id="tab-text" class="w-full py-3 px-4 rounded-lg font-semibold tab-active">Prompt Kreatif</button>
-        <button id="tab-image" class="w-full py-3 px-4 rounded-lg font-semibold tab-inactive">Image to Text</button>
-      </div>
-    </section>
-
-    <!-- Inputs -->
-    <section id="text-input-section">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="md:col-span-2">
-          <label class="block text-sm font-medium text-gray-300 mb-2">2. Masukkan Ide Utama Anda</label>
-          <textarea id="main-topic" rows="3" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 placeholder-gray-500" placeholder="Contoh: Elang terbang di atas pegunungan"></textarea>
-          <div class="flex items-center gap-2 mt-2">
-            <button id="preset-beauty" class="chip">Landscape</button>
-            <button id="preset-character" class="chip">Character</button>
-            <button id="preset-product" class="chip">Product</button>
-          </div>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-300 mb-2">Jumlah Prompt</label>
-          <input id="prompt-count" type="number" value="1" min="1" class="w-full h-[90px] bg-gray-700 border border-gray-600 rounded-lg p-3 text-center text-lg">
-        </div>
-      </div>
-    </section>
-
-    <section id="image-input-section" class="hidden">
-      <label class="block text-sm font-medium text-gray-300 mb-2">2. Unggah Gambar Anda (Maks. 50)</label>
-      <label for="image-upload" class="custom-file-upload rounded-lg p-4 h-32">
-        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-        <p class="mt-2 text-sm text-gray-400">Klik atau seret gambar ke sini</p>
-      </label>
-      <input id="image-upload" name="image-upload" type="file" class="sr-only" accept="image/*" multiple>
-      <div id="image-previews-container" class="mt-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2"></div>
-      <p id="file-info" class="text-sm text-gray-400 mt-2"></p>
-    </section>
-
-    <!-- Style -->
-    <section>
-      <label class="block text-sm font-medium text-gray-300 mb-2">3. Pilih Gaya Output</label>
-      <div class="grid grid-cols-3 gap-4">
-        <button id="btn-general" class="w-full py-3 px-4 rounded-lg font-semibold tab-active">🎨 Gambar</button>
-        <button id="btn-vector" class="w-full py-3 px-4 rounded-lg font-semibold tab-inactive">📐 Vektor</button>
-        <button id="btn-video" class="w-full py-3 px-4 rounded-lg font-semibold tab-inactive">📹 Video</button>
-      </div>
-    </section>
-
-    <!-- Controls -->
-    <section class="space-y-3">
-      <div class="flex gap-3">
-        <button id="generate-btn" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-3">
-          <span id="btn-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg></span>
-          <span id="btn-text">Buat Prompt</span>
-        </button>
-        <button id="download-btn" class="w-28 bg-gray-700 hover:bg-gray-600 text-sm rounded-lg">Download</button>
-      </div>
-      <div class="text-xs text-gray-400">Catatan: Untuk pemanggilan model AI, atur API key di pengaturan (lihat komentar di kode).</div>
-    </section>
-
-    <!-- Output -->
-    <section>
-      <label class="block text-sm font-medium text-gray-300 mb-2">4. Hasil Prompt (dalam Bahasa Inggris)</label>
-      <div class="relative">
-        <textarea id="output-prompt" rows="10" readonly class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 pr-40 text-gray-300 text-sm"></textarea>
-        <div class="absolute top-2 right-2 flex flex-col space-y-2">
-          <button id="copy-btn" class="bg-gray-600 hover:bg-gray-500 text-gray-200 font-semibold py-2 px-3 rounded-md text-xs">Salin</button>
-          <button id="clear-btn" class="bg-red-600 hover:bg-red-500 text-gray-200 font-semibold py-2 px-3 rounded-md text-xs">Hapus</button>
-        </div>
-      </div>
-    </section>
-
-    <footer class="text-center text-sm text-gray-500">Built for you — edit freely. API calls are intentionally abstracted so you can plug your provider (OpenAI / Google Gemini / self-hosted).</footer>
-  </div>
-
-  <script>
-    // ----------------- Elements -----------------
-    const el = {
-      tabText: document.getElementById('tab-text'),
-      tabImage: document.getElementById('tab-image'),
-      textInputSection: document.getElementById('text-input-section'),
-      imageInputSection: document.getElementById('image-input-section'),
-      imageUpload: document.getElementById('image-upload'),
-      imagePreviewsContainer: document.getElementById('image-previews-container'),
-      fileInfo: document.getElementById('file-info'),
-      mainTopic: document.getElementById('main-topic'),
-      promptCount: document.getElementById('prompt-count'),
-      btnGeneral: document.getElementById('btn-general'),
-      btnVector: document.getElementById('btn-vector'),
-      btnVideo: document.getElementById('btn-video'),
-      generateBtn: document.getElementById('generate-btn'),
-      outputPrompt: document.getElementById('output-prompt'),
-      copyBtn: document.getElementById('copy-btn'),
-      clearBtn: document.getElementById('clear-btn'),
-      btnIcon: document.getElementById('btn-icon'),
-      btnText: document.getElementById('btn-text'),
-      downloadBtn: document.getElementById('download-btn'),
-      presetBeauty: document.getElementById('preset-beauty'),
-      presetCharacter: document.getElementById('preset-character'),
-      presetProduct: document.getElementById('preset-product')
-    };
-
-    // ----------------- State -----------------
-    let mainMode = 'text';
-    let outputStyle = 'general';
-    let uploadedImageData = [];
-    let isGenerating = false;
-
-    // ----------------- Helpers -----------------
-    function setActive(button, active) {
-      button.classList.toggle('tab-active', active);
-      button.classList.toggle('tab-inactive', !active);
-    }
-
-    function setActiveStyleButton(activeButton) {
-      [el.btnGeneral, el.btnVector, el.btnVideo].forEach(b => {
-        setActive(b, b === activeButton);
-      });
-    }
-
-    // ----------------- Events: Tabs -----------------
-    el.tabText.addEventListener('click', () => {
-      mainMode = 'text';
-      setActive(el.tabText, true);
-      setActive(el.tabImage, false);
-      el.textInputSection.classList.remove('hidden');
-      el.imageInputSection.classList.add('hidden');
-      el.promptCount.disabled = false;
-    });
-
-    el.tabImage.addEventListener('click', () => {
-      mainMode = 'image';
-      setActive(el.tabImage, true);
-      setActive(el.tabText, false);
-      el.imageInputSection.classList.remove('hidden');
-      el.textInputSection.classList.add('hidden');
-      el.promptCount.disabled = true;
-    });
-
-    // presets
-    el.presetBeauty.addEventListener('click', () => el.mainTopic.value = 'Epic landscape: dramatic sky, mountain ridges, cinematic lighting');
-    el.presetCharacter.addEventListener('click', () => el.mainTopic.value = 'A heroic female character with futuristic armor, dynamic pose, close-up');
-    el.presetProduct.addEventListener('click', () => el.mainTopic.value = 'Sleek smartphone on a clean surface, with ample copy space on the right');
-
-    // style buttons
-    el.btnGeneral.addEventListener('click', () => { outputStyle = 'general'; setActiveStyleButton(el.btnGeneral); });
-    el.btnVector.addEventListener('click', () => { outputStyle = 'vector'; setActiveStyleButton(el.btnVector); });
-    el.btnVideo.addEventListener('click', () => { outputStyle = 'video'; setActiveStyleButton(el.btnVideo); });
-
-    // ----------------- Image Upload -----------------
-    el.imageUpload.addEventListener('change', handleFiles);
-
-    // drag & drop
-    const dropZone = document.querySelector('.custom-file-upload');
-    ['dragenter','dragover'].forEach(ev => dropZone.addEventListener(ev, (e) => { e.preventDefault(); dropZone.classList.add('ring-2','ring-indigo-500'); }));
-    ['dragleave','drop'].forEach(ev => dropZone.addEventListener(ev, (e) => { e.preventDefault(); dropZone.classList.remove('ring-2','ring-indigo-500'); }));
-    dropZone.addEventListener('drop', (e) => { handleFilesFromList(e.dataTransfer.files); });
-
-    function handleFiles(e) { handleFilesFromList(e.target.files); }
-    function handleFilesFromList(filesList) {
-      const MAX = 50;
-      const files = Array.from(filesList);
-      if (files.length > MAX) { el.fileInfo.textContent = `Error: Maksimal ${MAX} gambar.`; el.fileInfo.classList.add('text-red-500'); el.imageUpload.value = ''; return; }
-      el.imagePreviewsContainer.innerHTML = '';
-      uploadedImageData = [];
-      el.fileInfo.textContent = files.length > 0 ? `${files.length} gambar dipilih.` : '';
-      files.forEach(file => {
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          const src = ev.target.result;
-          const img = document.createElement('img');
-          img.src = src;
-          img.className = 'w-full h-20 object-cover rounded-lg';
-          el.imagePreviewsContainer.appendChild(img);
-          uploadedImageData.push({ mimeType: file.type, data: src.split(',')[1] });
-        };
-        reader.readAsDataURL(file);
-      });
-    }
-
-    // ----------------- Generate Flow -----------------
-    el.generateBtn.addEventListener('click', async () => {
-      if (isGenerating) return stopGeneration();
-      isGenerating = true; toggleLoading(true);
-      el.outputPrompt.value = 'AI sedang berpikir...';
-
-      try {
-        let results = [];
-        if (mainMode === 'text') {
-          const topic = el.mainTopic.value.trim();
-          const count = parseInt(el.promptCount.value, 10);
-          if (!topic || isNaN(count) || count < 1) { el.outputPrompt.value = 'Silakan masukkan ide dan jumlah prompt yang valid.'; return; }
-          // batch logic
-          const BATCH = 5;
-          for (let i=0;i<count;i+=BATCH) {
-            const current = Math.min(BATCH, count - i);
-            const batch = await fetchPromptBatch(topic, outputStyle, current);
-            results.push(...batch);
-            el.outputPrompt.value = `Membuat prompt... (${results.length}/${count} selesai)\n\n` + results.map((p,idx)=>`${idx+1}. ${p}`).join('\n\n');
-          }
-        } else {
-          if (uploadedImageData.length === 0) { el.outputPrompt.value = 'Silakan unggah gambar terlebih dahulu.'; return; }
-          const BATCH = 5;
-          for (let i=0;i<uploadedImageData.length;i+=BATCH) {
-            const batch = uploadedImageData.slice(i,i+BATCH);
-            const promises = batch.map(img=>generatePromptFromImage(img, outputStyle));
-            const batchRes = await Promise.all(promises);
-            results.push(...batchRes.flat());
-            el.outputPrompt.value = `Membuat prompt... (${results.length}/${uploadedImageData.length} selesai)\n\n` + results.map((p,idx)=>`${idx+1}. ${p}`).join('\n\n');
-          }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Generator By SKBKTeam</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Font utama dan font untuk hasil prompt -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
         }
-        el.outputPrompt.value = results.map((p,i)=>`${i+1}. ${p}`).join('\n\n');
-      } catch (err) {
-        console.error(err);
-        el.outputPrompt.value = 'Maaf, terjadi kesalahan saat membuat prompt.';
-      } finally {
-        isGenerating = false; toggleLoading(false);
-      }
-    });
+        #output-prompt {
+            font-family: 'Fira Code', monospace;
+        }
+        .tab-active {
+            background-color: #4f46e5;
+            color: white;
+        }
+        .tab-inactive {
+            background-color: #374151;
+            color: #d1d5db;
+        }
+        .tab-inactive:hover {
+            background-color: #4b5563;
+        }
+        #generate-btn:disabled {
+            cursor: not-allowed;
+            background-color: #4338ca;
+        }
+        .loader {
+            width: 18px;
+            height: 18px;
+            border: 2px solid #FFF;
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Custom file input */
+        .custom-file-upload {
+            border: 2px dashed #4b5563;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            background-color: #374151;
+            transition: background-color 0.2s;
+        }
+        .custom-file-upload:hover {
+            background-color: #4b5563;
+            border-color: #6b7280;
+        }
+        #image-previews-container img {
+            max-height: 100px;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
 
-    function stopGeneration() {
-      // in this simplified client we just flip flags — advanced: cancel tokens on server
-      isGenerating = false; toggleLoading(false);
-      el.btnText.textContent = 'Buat Prompt';
-    }
+    <div class="w-full max-w-2xl bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8 space-y-6">
+        
+        <!-- Header -->
+        <div class="text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-500">
+                Prompt Generator By SKBKTeam
+            </h1>
+            <p class="text-gray-400 mt-2">Ubah ide sederhana menjadi prompt gambar & video yang luar biasa.</p>
+        </div>
 
-    function toggleLoading(loading) {
-      el.generateBtn.disabled = loading;
-      if (loading) {
-        el.btnText.textContent = 'Menghentikan...';
-        el.btnIcon.innerHTML = '<span class="loader"></span>';
-      } else {
-        el.btnText.textContent = 'Buat Prompt';
-        el.btnIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg>`;
-      }
-    }
+        <!-- Main Mode Tabs -->
+        <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">1. Pilih Mode Input</label>
+            <div class="grid grid-cols-2 gap-4">
+                <button id="tab-text" class="w-full py-3 px-4 rounded-lg transition-all duration-200 font-semibold text-sm md:text-base tab-active">
+                    Prompt Kreatif
+                </button>
+                <button id="tab-image" class="w-full py-3 px-4 rounded-lg transition-all duration-200 font-semibold text-sm md:text-base tab-inactive">
+                    Image to Text
+                </button>
+            </div>
+        </div>
 
-    // ----------------- Copy / Clear / Download -----------------
-    el.copyBtn.addEventListener('click', () => {
-      if (!el.outputPrompt.value) return;
-      el.outputPrompt.select(); document.execCommand('copy');
-      el.copyBtn.textContent = 'Disalin!'; setTimeout(()=>el.copyBtn.textContent='Salin',2000);
-    });
-    el.clearBtn.addEventListener('click', ()=> el.outputPrompt.value = '');
-    el.downloadBtn.addEventListener('click', ()=> {
-      const txt = el.outputPrompt.value || 'no content';
-      const blob = new Blob([txt], {type:'text/plain'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'prompts.txt'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-    });
+        <!-- Input Sections -->
+        <div id="text-input-section">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="md:col-span-2">
+                    <label for="main-topic" class="block text-sm font-medium text-gray-300 mb-2">2. Masukkan Ide Utama Anda</label>
+                    <textarea id="main-topic" rows="3" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 placeholder-gray-500" placeholder="Contoh: Elang terbang di atas pegunungan"></textarea>
+                </div>
+                <div>
+                    <label for="prompt-count" class="block text-sm font-medium text-gray-300 mb-2">Jumlah Prompt</label>
+                    <input type="number" id="prompt-count" value="1" min="1" class="w-full h-[90px] md:h-auto bg-gray-700 border border-gray-600 rounded-lg p-3 text-center text-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+            </div>
+        </div>
 
-    // ----------------- AI API Integration (abstracted) -----------------
-    /*
-      IMPORTANT:
-      - This client intentionally does NOT contain an API key. For production, implement a server endpoint
-        that stores your API key safely and proxies requests (e.g. POST /api/generate with payload).
-      - Below are two helper functions: fetchPromptBatch (for text-to-prompts) and generatePromptFromImage (for images).
-      - You can adapt fetchToProvider(...) to call OpenAI, Google Gemini, or your own model endpoint. Keep keys server-side.
-    */
+        <div id="image-input-section" class="hidden">
+            <label class="block text-sm font-medium text-gray-300 mb-2">2. Unggah Gambar Anda (Maks. 50)</label>
+            <label for="image-upload" class="custom-file-upload rounded-lg p-4 h-32">
+                 <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+                <p class="mt-2 text-sm text-gray-400">Klik untuk mengunggah gambar</p>
+            </label>
+            <div id="image-previews-container" class="mt-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2"></div>
+            <p id="file-info" class="text-sm text-gray-400 mt-2 text-center h-4"></p>
+            <input id="image-upload" name="image-upload" type="file" class="sr-only" accept="image/*" multiple>
+        </div>
 
-    async function fetchToProvider(payload) {
-      // EXAMPLE: call your serverless endpoint which forwards to the AI provider
-      // return fetch('/api/generate', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) }).then(r=>r.json());
+        <!-- Style Selection -->
+        <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">3. Pilih Gaya Output</label>
+            <div class="grid grid-cols-3 gap-4">
+                <button id="btn-general" class="w-full py-3 px-4 rounded-lg transition-all duration-200 font-semibold text-sm md:text-base tab-active">
+                    🎨 Gambar
+                </button>
+                <button id="btn-vector" class="w-full py-3 px-4 rounded-lg transition-all duration-200 font-semibold text-sm md:text-base tab-inactive">
+                    📐 Vektor
+                </button>
+                <button id="btn-video" class="w-full py-3 px-4 rounded-lg transition-all duration-200 font-semibold text-sm md:text-base tab-inactive">
+                    📹 Video
+                </button>
+            </div>
+        </div>
 
-      // For demo / offline: return a mocked response with delay
-      await new Promise(r=>setTimeout(r, 600));
-      // Mocked: if payload includes `parseAsJson` we return a JSON string
-      if (payload.mockJson) {
-        return { prompts: payload.mockJson.prompts || [ 'Mocked prompt for ' + (payload.topic||'topic') ] };
-      }
-      return { text: 'Mocked single prompt for ' + (payload.topic||'topic') };
-    }
+        <!-- Generate Button -->
+        <button id="generate-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition-all duration-200 text-lg flex items-center justify-center gap-3">
+            <span id="btn-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path><path d="M5 3v4"></path><path d="M19 17v4"></path><path d="M3 5h4"></path><path d="M17 19h4"></path></svg>
+            </span>
+            <span id="btn-text">Buat Prompt</span>
+        </button>
 
-    async function fetchPromptBatch(topic, style, count) {
-      // Build master prompt (same logic as original) and ask server to return JSON array of prompts
-      const outputType = style === 'general' ? 'image' : style === 'video' ? 'video' : 'vector';
-      const masterPrompt = {
-        topic, style, count, outputType,
-        instructions: `Generate exactly ${count} distinct, high-quality prompts optimized for microstock. Include copy-space suggestions and technical terms like photorealistic, sharp focus. Return as JSON: {\"prompts\": [..]}`
-      };
-      // Call your server-side endpoint — here we call a mocked provider
-      const resp = await fetchToProvider({ mockJson: { prompts: Array.from({length:count}, (_,i)=>`Mock ${i+1}: ${topic} (${style})`) }, topic });
-      // if real provider returns a raw string with JSON wrapper, parse here
-      if (resp.prompts) return resp.prompts;
-      // fallback
-      return [resp.text || 'No prompt returned'];
-    }
+        <!-- Output -->
+        <div>
+            <label for="output-prompt" class="block text-sm font-medium text-gray-300 mb-2">4. Hasil Prompt (dalam Bahasa Inggris)</label>
+            <div class="relative">
+                <textarea id="output-prompt" rows="8" readonly class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 pr-40 text-gray-300 text-sm leading-relaxed"></textarea>
+                <div class="absolute top-2 right-2 flex flex-col space-y-2">
+                     <button id="copy-btn" class="bg-gray-600 hover:bg-gray-500 text-gray-200 font-semibold py-2 px-3 rounded-md transition-all duration-200 text-xs">
+                        Salin
+                    </button>
+                    <button id="clear-btn" class="bg-red-600 hover:bg-red-500 text-gray-200 font-semibold py-2 px-3 rounded-md transition-all duration-200 text-xs">
+                        Hapus
+                    </button>
+                </div>
+            </div>
+        </div>
 
-    async function generatePromptFromImage(imageData, style) {
-      const styleDesc = { general: 'a photorealistic, cinematic image prompt', vector: 'a Flat 2D vector illustration prompt', video: 'a cinematic 4K video footage prompt' }[style];
-      const masterPrompt = `Analyze image and produce one detailed prompt in English describing content, mood, composition, color palette, and camera/lighting details. Style: ${styleDesc}.`;
-      const resp = await fetchToProvider({ imageData, masterPrompt });
-      if (resp.text) return resp.text;
-      // mock fallback
-      return [`Mocked image prompt (${style})`];
-    }
+    </div>
 
-    // ----------------- End -----------------
-  </script>
+    <script>
+        // --- Element References ---
+        const allElements = {
+            tabText: document.getElementById('tab-text'),
+            tabImage: document.getElementById('tab-image'),
+            textInputSection: document.getElementById('text-input-section'),
+            imageInputSection: document.getElementById('image-input-section'),
+            imageUpload: document.getElementById('image-upload'),
+            imagePreviewsContainer: document.getElementById('image-previews-container'),
+            fileInfo: document.getElementById('file-info'),
+            mainTopicInput: document.getElementById('main-topic'),
+            promptCountInput: document.getElementById('prompt-count'),
+            btnGeneral: document.getElementById('btn-general'),
+            btnVector: document.getElementById('btn-vector'),
+            btnVideo: document.getElementById('btn-video'),
+            generateBtn: document.getElementById('generate-btn'),
+            outputPromptTextarea: document.getElementById('output-prompt'),
+            copyBtn: document.getElementById('copy-btn'),
+            clearBtn: document.getElementById('clear-btn'),
+            btnIcon: document.getElementById('btn-icon'),
+            btnText: document.getElementById('btn-text'),
+        };
+
+        // --- State Management ---
+        let mainMode = 'text'; // 'text' or 'image'
+        let outputStyle = 'general'; // 'general', 'vector', 'video'
+        let uploadedImageData = [];
+        let stopGeneration = false; // Flag to control generation process
+
+        const styleButtons = [allElements.btnGeneral, allElements.btnVector, allElements.btnVideo];
+
+        // --- Event Listeners ---
+        allElements.tabText.addEventListener('click', () => {
+            mainMode = 'text';
+            allElements.tabText.classList.replace('tab-inactive', 'tab-active');
+            allElements.tabImage.classList.replace('tab-active', 'tab-inactive');
+            allElements.textInputSection.classList.remove('hidden');
+            allElements.imageInputSection.classList.add('hidden');
+            allElements.promptCountInput.disabled = false;
+        });
+
+        allElements.tabImage.addEventListener('click', () => {
+            mainMode = 'image';
+            allElements.tabImage.classList.replace('tab-inactive', 'tab-active');
+            allElements.tabText.classList.replace('tab-active', 'tab-inactive');
+            allElements.imageInputSection.classList.remove('hidden');
+            allElements.textInputSection.classList.add('hidden');
+            allElements.promptCountInput.disabled = true;
+        });
+
+        function setActiveStyleButton(activeButton) {
+            styleButtons.forEach(button => {
+                button.classList.replace(button === activeButton ? 'tab-inactive' : 'tab-active', button === activeButton ? 'tab-active' : 'tab-inactive');
+            });
+        }
+
+        allElements.btnGeneral.addEventListener('click', () => { outputStyle = 'general'; setActiveStyleButton(allElements.btnGeneral); });
+        allElements.btnVector.addEventListener('click', () => { outputStyle = 'vector'; setActiveStyleButton(allElements.btnVector); });
+        allElements.btnVideo.addEventListener('click', () => { outputStyle = 'video'; setActiveStyleButton(allElements.btnVideo); });
+
+        allElements.imageUpload.addEventListener('change', (event) => {
+            const MAX_FILES = 50;
+            const files = event.target.files;
+
+            allElements.fileInfo.classList.remove('text-red-500');
+
+            if (files.length > MAX_FILES) {
+                allElements.fileInfo.textContent = `Error: Maksimal ${MAX_FILES} gambar.`;
+                allElements.fileInfo.classList.add('text-red-500');
+                allElements.imageUpload.value = '';
+                return;
+            }
+            
+            allElements.imagePreviewsContainer.innerHTML = '';
+            uploadedImageData = [];
+            allElements.fileInfo.textContent = files.length > 0 ? `${files.length} gambar dipilih.` : '';
+
+            for (const file of files) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'w-full h-20 object-cover rounded-lg';
+                    allElements.imagePreviewsContainer.appendChild(img);
+                    uploadedImageData.push({
+                        mimeType: file.type,
+                        data: e.target.result.split(',')[1]
+                    });
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        allElements.generateBtn.addEventListener('click', async () => {
+            if (allElements.generateBtn.dataset.generating === 'true') {
+                stopGeneration = true;
+                allElements.btnText.textContent = 'Menghentikan...';
+                allElements.generateBtn.disabled = true;
+                return;
+            }
+            
+            stopGeneration = false;
+            setLoading(true);
+            allElements.outputPromptTextarea.value = "AI sedang berpikir, mohon tunggu...";
+
+            try {
+                let allPrompts = [];
+                if (mainMode === 'text') {
+                    const topic = allElements.mainTopicInput.value.trim();
+                    const count = parseInt(allElements.promptCountInput.value, 10);
+                    if (!topic || isNaN(count) || count < 1) {
+                        allElements.outputPromptTextarea.value = "Silakan masukkan ide dan jumlah prompt yang valid.";
+                        setLoading(false); return;
+                    }
+                    const BATCH_SIZE = 5;
+                    for (let i = 0; i < count; i += BATCH_SIZE) {
+                        if (stopGeneration) break;
+                        const currentBatchSize = Math.min(BATCH_SIZE, count - i);
+                        const batchResults = await fetchPromptBatch(topic, outputStyle, currentBatchSize);
+                        allPrompts.push(...batchResults);
+                        allElements.outputPromptTextarea.value = `Membuat prompt... (${allPrompts.length}/${count} selesai)\n\n` + 
+                                                                 allPrompts.map((p, index) => `${index + 1}. ${p}`).join('\n\n');
+                    }
+                } else { // Image mode
+                    if (uploadedImageData.length === 0) {
+                        allElements.outputPromptTextarea.value = "Silakan unggah gambar terlebih dahulu.";
+                        setLoading(false); return;
+                    }
+                    const totalImages = uploadedImageData.length;
+                    const BATCH_SIZE = 5;
+                    for (let i = 0; i < totalImages; i += BATCH_SIZE) {
+                        if (stopGeneration) break;
+                        const batch = uploadedImageData.slice(i, i + BATCH_SIZE);
+                        const batchPromises = batch.map(imgData => generatePromptFromImage(imgData, outputStyle));
+                        const batchResults = await Promise.all(batchPromises);
+                        allPrompts.push(...batchResults.flat());
+                        allElements.outputPromptTextarea.value = `Membuat prompt... (${allPrompts.length}/${totalImages} selesai)\n\n` + 
+                                                                 allPrompts.map((p, index) => `${index + 1}. ${p}`).join('\n\n');
+                    }
+                }
+                
+                let finalOutput = allPrompts.map((p, index) => `${index + 1}. ${p}`).join('\n\n');
+                allElements.outputPromptTextarea.value = finalOutput;
+
+            } catch (error) {
+                if (!stopGeneration) {
+                    console.error("Error calling AI model:", error);
+                    allElements.outputPromptTextarea.value = "Maaf, terjadi kesalahan saat membuat prompt. Silakan coba lagi.";
+                }
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        allElements.copyBtn.addEventListener('click', () => {
+            if (allElements.outputPromptTextarea.value) {
+                allElements.outputPromptTextarea.select();
+                document.execCommand('copy');
+                allElements.copyBtn.textContent = 'Disalin!';
+                setTimeout(() => { allElements.copyBtn.textContent = 'Salin'; }, 2000);
+            }
+        });
+
+        allElements.clearBtn.addEventListener('click', () => {
+            allElements.outputPromptTextarea.value = '';
+        });
+
+        function setLoading(isLoading) {
+            if (isLoading) {
+                allElements.generateBtn.dataset.generating = 'true';
+                allElements.generateBtn.disabled = false;
+                allElements.btnText.textContent = 'Hentikan';
+                allElements.btnIcon.innerHTML = '<span class="loader"></span>';
+            } else {
+                allElements.generateBtn.dataset.generating = 'false';
+                allElements.generateBtn.disabled = false;
+                allElements.btnText.textContent = 'Buat Prompt';
+                allElements.btnIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path><path d="M5 3v4"></path><path d="M19 17v4"></path><path d="M3 5h4"></path><path d="M17 19h4"></path></svg>`;
+                stopGeneration = false;
+            }
+        }
+
+        // --- AI API Calls ---
+        async function generatePromptFromImage(imageData, style) {
+            const styleDescription = {
+                general: 'a photorealistic, cinematic image prompt',
+                vector: 'a Flat 2D vector illustration prompt',
+                video: 'a cinematic 4K video footage prompt'
+            }[style];
+
+            const masterPrompt = `You are a world-class prompt engineer. Analyze this image and generate one single, highly detailed prompt that describes its content, mood, and composition. The prompt should be crafted in the style of ${styleDescription}. Emulate the quality of master-level prompts like "A futuristic smart city skyline at night, glowing neon skyscrapers with holographic billboards, flying cars leaving light trails, cyberpunk atmosphere, cinematic perspective, ultra-detailed, sharp focus, 3D render, 4K, hyper-realistic".`;
+
+            const payload = {
+                contents: [{
+                    parts: [
+                        { text: masterPrompt },
+                        { inlineData: { mimeType: imageData.mimeType, data: imageData.data } }
+                    ]
+                }],
+            };
+            // Menggunakan model yang sama untuk konsistensi, karena gemini-2.5-flash-preview-09-2025 dapat menangani gambar
+            const result = await fetchFromApi(payload);
+            return [result.candidates[0].content.parts[0].text]; 
+        }
+
+        async function fetchPromptBatch(topic, style, count) {
+            let masterPrompt = '';
+            if (style === 'vector') {
+                masterPrompt = `You are an expert prompt engineer specializing in high-quality Flat 2D Vector illustrations for microstock platforms. The user's topic is: "${topic}". Generate exactly ${count} unique, scene-based prompts with high commercial value.
+                **CRITICAL RULES:**
+                1.  **Emulate this style:** "Flat 2D vector of a female teacher standing in front of a classroom blackboard holding a book, with students raising hands at their desks, simplified style, clean outlines, white background, no text".
+                2.  **Start every prompt with:** "Flat 2D vector of...".
+                3.  **End every prompt with:** "clean outlines, vibrant colors, white background, no text".
+                4.  **Novelty is key:** Each prompt must describe a completely different scene and composition. Avoid repetition.`;
+            } else {
+                const outputType = style === 'general' ? 'image' : 'video';
+                masterPrompt = `You are an expert AI prompt engineer for microstock contributors. Your goal is to turn a simple idea into high-value, commercially successful prompts. The user's idea is: "${topic}".
+                **Your Mission:** Generate **exactly ${count}** distinct, professional prompts for a **${outputType}**.
+                
+                **CRITICAL INSTRUCTIONS FOR MICROSTOCK SUCCESS:**
+                1.  **Focus on Commercial Concepts:** Prioritize popular microstock themes like business collaboration, technology, healthcare, healthy lifestyle, and abstract concepts representing success or innovation.
+                2.  **Design for Copy Space:** Create compositions that naturally include negative space (e.g., a clean sky, a simple wall) where designers can add text. Mention this in the prompt (e.g., "with ample copy space on the right").
+                3.  **Ensure Technical Excellence:** Demand the highest quality with terms like 'photorealistic', 'hyper-detailed', 'sharp focus', 'studio lighting', '4K', '8K'.
+                4.  **MANDATORY - Radical Novelty:** Every single prompt must be a unique concept. If the topic is "teamwork," generate scenarios in an office, on a mountain, in a futuristic lab, etc. Never generate similar prompts. Always be fresh and creative.`;
+            }
+
+            const payload = {
+                contents: [{ role: "user", parts: [{ text: masterPrompt }] }],
+                generationConfig: { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { prompts: { type: "ARRAY", items: { type: "STRING" } } } } }
+            };
+            const result = await fetchFromApi(payload);
+            const jsonText = result.candidates[0].content.parts[0].text;
+            let cleanedJsonText = jsonText.trim();
+            // Membersihkan wrapper markdown/json jika ada
+            if (cleanedJsonText.startsWith("```json")) {
+                cleanedJsonText = cleanedJsonText.substring(7, cleanedJsonText.length - 3).trim();
+            } else if (cleanedJsonText.startsWith("json")) {
+                 cleanedJsonText = cleanedJsonText.substring(4).trim();
+            }
+            const parsedJson = JSON.parse(cleanedJsonText);
+            return parsedJson.prompts || [];
+        }
+
+        async function fetchFromApi(payload) {
+            // --- PENTING! ---
+            // Ganti "" dengan API Key Anda yang valid.
+            // Dapatkan Key Anda dari Google AI Studio ([https://aistudio.google.com/](https://aistudio.google.com/))
+            const apiKey = "AIzaSyDO8OVdJX90259SGmt3Db6dyW15zNBIs9M"; // <-- GANTI DENGAN API KEY ANDA
+            
+            // Menggunakan model yang lebih baru dan direkomendasikan
+            const model = "gemini-2.5-flash-preview-09-2025"; 
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+            
+            let attempts = 0;
+            const maxAttempts = 5;
+            let delay = 1000;
+
+            while (attempts < maxAttempts) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (response.ok) {
+                        return await response.json();
+                    }
+                    if (response.status === 429 || response.status >= 500) {
+                        console.warn(`Request failed with status ${response.status}. Retrying in ${delay}ms...`);
+                    } else {
+                        // Jika API key salah, error akan muncul di sini (status 400)
+                        const errorBody = await response.text();
+                        console.error(`API request failed with status ${response.status}: ${errorBody}`);
+                        throw new Error(`API request failed with status ${response.status}: ${response.statusText}`);
+                    }
+                } catch (error) {
+                    console.error(`Fetch attempt ${attempts + 1} failed:`, error);
+                }
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay *= 2;
+                attempts++;
+            }
+            throw new Error(`Failed to get a valid response after ${maxAttempts} attempts.`);
+        }
+    </script>
 </body>
 </html>
